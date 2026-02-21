@@ -71,12 +71,13 @@ function validateEnrichment(data: any): any {
 export async function POST(req: Request) {
   const startTime = Date.now();
   let retryAttempts = 0;
+  let sanitizedUrl = '';
   
   try {
     const { url } = await req.json();
     
     // Sanitize and validate URL
-    const sanitizedUrl = sanitizeUserInput(url);
+    sanitizedUrl = sanitizeUserInput(url);
     if (!sanitizedUrl || !sanitizedUrl.startsWith('http')) {
       logger.warn('Invalid URL provided', { url: sanitizedUrl });
       throw new Error('Invalid URL format');
@@ -233,12 +234,10 @@ ${cleanedText.slice(0, 12000)}`,
     
     // If quota exceeded or API error, return demo data
     if (error.message?.includes('quota') || error.message?.includes('429') || error.message?.includes('billing')) {
-      const { url } = await req.json();
-      const sanitizedUrl = sanitizeUserInput(url);
       logger.warn('API quota exceeded, using demo mode', { url: sanitizedUrl });
       return NextResponse.json({
-        data: getDemoEnrichment(sanitizedUrl),
-        source: sanitizedUrl,
+        data: getDemoEnrichment(sanitizedUrl || 'https://example.com'),
+        source: sanitizedUrl || 'https://example.com',
         timestamp: new Date().toISOString(),
         demo: true
       });
