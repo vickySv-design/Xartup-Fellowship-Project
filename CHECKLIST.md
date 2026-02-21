@@ -1,21 +1,34 @@
 # Pre-Submission Checklist
 
-## Security
-- [ ] `.env.local` not in git: `git status | grep ".env.local"` (should be empty)
-- [ ] `.env.example` in git: `git ls-files | grep ".env.example"` (should show file)
-- [ ] API key in Vercel environment variables
+## 1. Build ✅
+- [x] `npm run build` succeeds
+- [x] No type errors
+- [x] No SSR errors
+- [x] All pages compile successfully
 
-## Testing
-- [ ] Build works: `npm run build`
-- [ ] Test enrichment on deployed URL
-- [ ] Check browser console (no errors)
-- [ ] Check Network tab (no API key visible)
+## 2. Deployment (Test on Vercel)
+- [ ] Enrichment works
+- [ ] Cache works after refresh
+- [ ] Re-enrich works
 
-## Submission
-- [ ] GitHub repo URL
-- [ ] Live Vercel URL
-- [ ] Brief description (optional)
+## 3. Security
+- [ ] No API key in Network tab
+- [ ] No API key in browser console
+- [ ] No API key in page source
+
+## 4. Health Check
+- [ ] `/api/health` returns 200
+- [ ] Shows correct status
+
+## 5. Console
+- [ ] Zero red errors
+- [ ] No warnings
+
+## 6. README
+- [x] Clean and focused
+- [x] No self-scoring
+- [x] Easy to understand
 
 ---
 
-**Ready to submit when all boxes checked.**
+**Status**: Build ready. Deploy to Vercel and test items 2-5.
