@@ -4,6 +4,12 @@ A thesis-first VC intelligence platform with secure server-side AI enrichment an
 
 ---
 
+## Demo
+
+https://github.com/user-attachments/assets/your-video-id
+
+---
+
 ## What It Does
 
 - Discover startups
