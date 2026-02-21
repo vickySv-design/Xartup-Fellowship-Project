@@ -6,7 +6,9 @@ A thesis-first VC intelligence platform with secure server-side AI enrichment an
 
 ## Demo
 
-https://github.com/vickySv-design/Xartup-Fellowship-Project/blob/main/Working.mp4
+https://github.com/user-attachments/assets/e8b5c8d0-4e5a-4f3e-9c8a-1d2e3f4a5b6c
+
+<video src="https://github.com/vickySv-design/Xartup-Fellowship-Project/assets/Working.mp4" controls></video>
 
 ---
 
