@@ -12,6 +12,7 @@ export default function Home() {
   const [stageFilter, setStageFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [selected, setSelected] = useState<string[]>([]);
+  const [analytics, setAnalytics] = useState({ enrichedCount: 0, avgScore: 0, highFitCount: 0 });
   const searchRef = useRef<HTMLInputElement>(null);
 
   const filtered = companies.filter(c =>
@@ -29,12 +30,8 @@ export default function Home() {
   const sectors = Array.from(new Set(companies.map(c => c.sector)));
   const stages = Array.from(new Set(companies.map(c => c.stage)));
 
-  // Calculate analytics with useMemo for performance
-  const analytics = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return { enrichedCount: 0, avgScore: 0, highFitCount: 0 };
-    }
-
+  // Calculate analytics on client side only
+  useEffect(() => {
     const enrichedCount = companies.filter(c => 
       localStorage.getItem(`enrich-${c.id}`)
     ).length;
@@ -69,8 +66,8 @@ export default function Home() {
       return false;
     }).length;
 
-    return { enrichedCount, avgScore, highFitCount };
-  }, [companies]);
+    setAnalytics({ enrichedCount, avgScore, highFitCount });
+  }, []);
 
   const toggleSelect = (id: string) => {
     setSelected(prev => 
