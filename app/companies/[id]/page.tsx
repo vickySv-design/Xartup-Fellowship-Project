@@ -263,17 +263,7 @@ export default function CompanyProfile() {
           </div>
         )}
 
-        {isDemo && (
-          <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-yellow-300 mb-1">Demo Mode Active</div>
-              <div className="text-sm text-yellow-200">
-                Configure your OpenAI API key in .env.local for live enrichment
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {error && (
           <div className="bg-red-900/20 border border-red-800 text-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">

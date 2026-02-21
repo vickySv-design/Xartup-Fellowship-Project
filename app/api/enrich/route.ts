@@ -1,224 +1,66 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { logger } from "@/lib/logger";
-import { sanitizeUserInput } from "@/lib/security";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyAYQRd-u09cnBswHwObbFiw5SrGBR9EBRs");
-
-// Fallback demo data for graceful degradation
-function getDemoEnrichment(url: string): any {
-  const domain = url.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
-  
-  return {
-    summary: `${domain} is a technology platform focused on innovation and growth. The company provides solutions for modern digital challenges.`,
-    whatTheyDo: [
-      "Develops cutting-edge technology solutions",
-      "Serves a global customer base",
-      "Focuses on scalability and performance",
-      "Provides developer-friendly tools and APIs"
-    ],
-    keywords: ["Technology", "Innovation", "Platform", "Digital", "Solutions", "Growth", "Development", "API"],
-    signals: ["Active website", "Professional design", "Content available", "Established presence"]
-  };
-}
-
-function cleanHTML(html: string): string {
-  // Remove script, style, and noscript tags
-  let cleaned = html.replace(/<script[\s\S]*?<\/script>/gi, '');
-  cleaned = cleaned.replace(/<style[\s\S]*?<\/style>/gi, '');
-  cleaned = cleaned.replace(/<noscript[\s\S]*?<\/noscript>/gi, '');
-  
-  // Try to extract main content area
-  const mainMatch = cleaned.match(/<main[\s\S]*?<\/main>/i);
-  if (mainMatch) {
-    cleaned = mainMatch[0];
-  } else {
-    const bodyMatch = cleaned.match(/<body[\s\S]*?<\/body>/i);
-    if (bodyMatch) {
-      cleaned = bodyMatch[0];
-    }
-  }
-  
-  // Remove HTML tags to get visible text
-  cleaned = cleaned.replace(/<[^>]+>/g, ' ');
-  
-  // Clean up whitespace
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-  
-  return cleaned;
-}
-
-function extractJSON(text: string): any {
-  // Remove markdown code blocks
-  text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-  
-  // Try to find JSON object
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
-  }
-  
-  throw new Error("No valid JSON found");
-}
-
-function validateEnrichment(data: any): any {
-  return {
-    summary: data.summary || "No summary available",
-    whatTheyDo: Array.isArray(data.whatTheyDo) ? data.whatTheyDo : ["Information not available"],
-    keywords: Array.isArray(data.keywords) ? data.keywords : [],
-    signals: Array.isArray(data.signals) ? data.signals : []
-  };
-}
-
-async function enrichWithGemini(cleanedText: string): Promise<any> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-  const prompt = `Extract from this startup website and return ONLY valid JSON:
-
-1. Summary (2 sentences)
-2. What they do (3-6 bullet points)  
-3. Keywords (5-10 relevant keywords)
-4. Signals (2-5 signals like "Careers page exists", "Blog exists", "Actively hiring")
-
-Return ONLY this JSON structure:
-{
-  "summary": "...",
-  "whatTheyDo": ["..."],
-  "keywords": ["..."],
-  "signals": ["..."]
-}
-
-Website content:
-${cleanedText.slice(0, 12000)}`;
-
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  const text = response.text();
-  
-  return extractJSON(text);
-}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: Request) {
-  const startTime = Date.now();
-  let retryAttempts = 0;
-  let sanitizedUrl = '';
-  
   try {
     const { url } = await req.json();
-    
-    // Sanitize and validate URL
-    sanitizedUrl = sanitizeUserInput(url);
-    if (!sanitizedUrl || !sanitizedUrl.startsWith('http')) {
-      logger.warn('Invalid URL provided', { url: sanitizedUrl });
-      throw new Error('Invalid URL format');
-    }
-    
-    logger.info('Enrichment started', { url: sanitizedUrl });
 
-    // Fetch website with timeout and retry
-    let response;
-    let retryCount = 0;
-    const maxRetries = 1;
-    
-    while (retryCount <= maxRetries) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        
-        response = await fetch(sanitizedUrl, { 
-          signal: controller.signal,
-          headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        clearTimeout(timeout);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Website not found (404). Unable to access content.");
-          }
-          if (response.status === 403) {
-            throw new Error("Access denied. Website may block automated requests.");
-          }
-          throw new Error(`Failed to fetch website: ${response.status}`);
-        }
-        
-        break; // Success, exit retry loop
-      } catch (error: any) {
-        retryCount++;
-        retryAttempts = retryCount;
-        if (retryCount > maxRetries) {
-          logger.error('Fetch failed after retries', { url: sanitizedUrl, retries: retryCount, error: error.message });
-          throw error;
-        }
-        logger.warn('Fetch retry', { url: sanitizedUrl, attempt: retryCount });
-        // Wait 1 second before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-
-    const html = await response!.text();
-    
-    // Edge case: Check for extremely large responses
-    const htmlSizeInMB = new Blob([html]).size / (1024 * 1024);
-    if (htmlSizeInMB > 5) {
-      logger.warn('Large HTML response detected', { url: sanitizedUrl, sizeMB: htmlSizeInMB.toFixed(2) });
-    }
-    
-    // Clean HTML before sending to model
-    const cleanedText = cleanHTML(html);
-    
-    if (cleanedText.length < 100) {
-      logger.warn('Insufficient content extracted', { url: sanitizedUrl, length: cleanedText.length });
-      throw new Error("Limited extractable content detected. Website may be JavaScript-heavy or empty.");
-    }
-
-    // Use Gemini for enrichment
-    const parsed = await enrichWithGemini(cleanedText);
-    
-    const duration = Date.now() - startTime;
-    logger.info('Enrichment completed with Gemini', { 
-      url: sanitizedUrl, 
-      durationMs: duration
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
     });
 
-    // Validate and sanitize
-    const validated = validateEnrichment(parsed);
+    const html = await response.text();
+    const cleaned = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 15000);
 
-    return NextResponse.json({
-      data: validated,
-      source: sanitizedUrl,
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const result = await model.generateContent(`Analyze this startup website and extract key information.
+
+Website content:
+${cleaned}
+
+Provide a JSON response with:
+1. summary: A 2-sentence overview of what the company does
+2. whatTheyDo: Array of 4-6 specific bullet points about their products/services
+3. keywords: Array of 8-10 relevant industry keywords (e.g., "AI", "SaaS", "B2B", "Climate", "Fintech")
+4. signals: Array of 3-5 traction signals found (e.g., "Hiring engineers", "Series A funded", "500+ customers", "YC backed")
+
+Return ONLY valid JSON in this exact format:
+{
+  "summary": "string",
+  "whatTheyDo": ["string"],
+  "keywords": ["string"],
+  "signals": ["string"]
+}`);
+
+    const text = result.response.text();
+    
+    const jsonMatch = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim().match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No valid JSON found in response");
+    }
+    
+    const data = JSON.parse(jsonMatch[0]);
+    
+    // Ensure all fields exist
+    const enrichedData = {
+      summary: data.summary || "No summary available",
+      whatTheyDo: Array.isArray(data.whatTheyDo) && data.whatTheyDo.length > 0 ? data.whatTheyDo : ["Information not available"],
+      keywords: Array.isArray(data.keywords) && data.keywords.length > 0 ? data.keywords : ["Startup", "Technology"],
+      signals: Array.isArray(data.signals) && data.signals.length > 0 ? data.signals : ["Active website"]
+    };
+
+    return NextResponse.json({ 
+      data: enrichedData,
       timestamp: new Date().toISOString(),
+      source: url
     });
   } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logger.error('Enrichment failed', { 
-      error: error.message,
-      durationMs: duration,
-      retries: retryAttempts
-    });
-    
-    // If quota exceeded, API error, or fetch failed, return demo data
-    if (error.message?.includes('quota') || 
-        error.message?.includes('429') || 
-        error.message?.includes('billing') ||
-        error.message?.includes('fetch failed') ||
-        error.message?.includes('Access denied') ||
-        error.message?.includes('404')) {
-      logger.warn('Using demo mode due to error', { url: sanitizedUrl, error: error.message });
-      return NextResponse.json({
-        data: getDemoEnrichment(sanitizedUrl || 'https://example.com'),
-        source: sanitizedUrl || 'https://example.com',
-        timestamp: new Date().toISOString(),
-        demo: true
-      });
-    }
-    
-    // Return graceful fallback
+    console.error("Enrichment error:", error);
     return NextResponse.json(
-      { 
-        error: error.message || "Enrichment failed. Please try again.",
-        fallback: true
-      },
+      { error: "Enrichment failed", details: error.message },
       { status: 500 }
     );
   }

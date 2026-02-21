@@ -15,6 +15,7 @@ export default function Sidebar() {
     { href: "/", label: "Discover", icon: Building2 },
     { href: "/lists", label: "Lists", icon: FolderOpen },
     { href: "/saved", label: "Saved Searches", icon: Bookmark },
+    { href: "/about", label: "About", icon: Target },
   ];
 
   return (
@@ -117,7 +118,7 @@ export default function Sidebar() {
 
       <div className="p-4 border-t border-gray-800 text-xs text-gray-500">
         <p>Explainable AI Enrichment</p>
-        <p className="mt-1">Powered by OpenAI</p>
+        <p className="mt-1">Powered by Gemini</p>
       </div>
     </aside>
   );

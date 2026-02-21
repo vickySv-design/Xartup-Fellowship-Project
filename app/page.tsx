@@ -7,6 +7,8 @@ import { Search, ArrowUpDown, CheckSquare, Download, FolderPlus, TrendingUp, Dat
 import { showToast } from "@/components/Toast";
 
 export default function Home() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [search, setSearch] = useState("");
   const [sectorFilter, setSectorFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
@@ -27,6 +29,16 @@ export default function Home() {
     if (sortBy === "sector") return a.sector.localeCompare(b.sector);
     return 0;
   });
+
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const paginatedCompanies = sorted.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, sectorFilter, stageFilter]);
 
   const sectors = Array.from(new Set(companies.map(c => c.sector)));
   const stages = Array.from(new Set(companies.map(c => c.stage)));
@@ -104,18 +116,9 @@ export default function Home() {
 
   const bulkExport = () => {
     if (selected.length === 0) return;
+    const { exportToCSV } = require("@/lib/utils");
     const toExport = companies.filter(c => selected.includes(c.id));
-    const csv = [
-      "Name,Sector,Stage,Location,Website",
-      ...toExport.map(c => `${c.name},${c.sector},${c.stage},${c.location},${c.website}`)
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "companies-export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    exportToCSV(toExport, "companies-export");
     showToast(`Exported ${toExport.length} companies`, "success");
   };
 
@@ -277,7 +280,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
-                {sorted.map(company => {
+                {paginatedCompanies.map(company => {
                   const enriched = getEnrichmentStatus(company.id) === "enriched";
                   return (
                     <tr 
@@ -333,8 +336,31 @@ export default function Home() {
             </table>
           </div>
 
-          <div className="mt-4 text-sm text-gray-400">
-            Showing {sorted.length} of {companies.length} companies
+          <div className="mt-4 flex items-center justify-between text-sm text-gray-400">
+            <div>
+              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sorted.length)} of {sorted.length} companies
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-3">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
