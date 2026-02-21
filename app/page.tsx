@@ -13,6 +13,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("name");
   const [selected, setSelected] = useState<string[]>([]);
   const [analytics, setAnalytics] = useState({ enrichedCount: 0, avgScore: 0, highFitCount: 0 });
+  const [mounted, setMounted] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const filtered = companies.filter(c =>
@@ -32,6 +33,7 @@ export default function Home() {
 
   // Calculate analytics on client side only
   useEffect(() => {
+    setMounted(true);
     const enrichedCount = companies.filter(c => 
       localStorage.getItem(`enrich-${c.id}`)
     ).length;
@@ -76,17 +78,17 @@ export default function Home() {
   };
 
   const getEnrichmentStatus = (id: string) => {
-    if (typeof window === 'undefined') return "pending";
+    if (!mounted) return "pending";
     return localStorage.getItem(`enrich-${id}`) ? "enriched" : "pending";
   };
 
   const hasNotes = (id: string) => {
-    if (typeof window === 'undefined') return false;
+    if (!mounted) return false;
     return !!localStorage.getItem(`notes-${id}`);
   };
 
   const isSaved = (id: string) => {
-    if (typeof window === 'undefined') return false;
+    if (!mounted) return false;
     const saved = JSON.parse(localStorage.getItem("savedCompanies") || "[]");
     return saved.some((c: any) => c.id === id);
   };
