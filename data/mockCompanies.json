@@ -1,34 +1,34 @@
 [
   {
     "id": "1",
-    "name": "AgriSense AI",
-    "website": "https://agrisense.ai",
-    "sector": "ClimateTech",
-    "stage": "Pre-Seed",
-    "location": "India"
+    "name": "Stripe",
+    "website": "https://stripe.com",
+    "sector": "FinTech",
+    "stage": "Series A",
+    "location": "USA"
   },
   {
     "id": "2",
-    "name": "FinEdge Labs",
-    "website": "https://finedge.com",
-    "sector": "FinTech",
+    "name": "Vercel",
+    "website": "https://vercel.com",
+    "sector": "DeepTech",
     "stage": "Seed",
-    "location": "India"
+    "location": "USA"
   },
   {
     "id": "3",
-    "name": "HealthSync",
-    "website": "https://healthsync.io",
-    "sector": "HealthTech",
-    "stage": "Pre-Seed",
-    "location": "India"
+    "name": "OpenAI",
+    "website": "https://openai.com",
+    "sector": "DeepTech",
+    "stage": "Series A",
+    "location": "USA"
   },
   {
     "id": "4",
-    "name": "EduFlow",
-    "website": "https://eduflow.tech",
-    "sector": "EdTech",
+    "name": "Notion",
+    "website": "https://notion.so",
+    "sector": "SaaS",
     "stage": "Seed",
-    "location": "India"
+    "location": "USA"
   }
 ]

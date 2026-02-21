@@ -17,7 +17,7 @@ VC Intel automates startup research by:
 ## Try It Out
 
 1. Open the Discover page
-2. Click "AgriSense AI"
+2. Click "Stripe" or "Vercel"
 3. Click "Enrich with AI"
 4. View thesis match score and extracted intelligence
 5. Add notes, save to list, export CSV
