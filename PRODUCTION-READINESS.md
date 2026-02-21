@@ -1,94 +1,13 @@
-# Production Backend Readiness Guide
+# Production Readiness Guide
 
-This document outlines the production-ready architecture and implementation strategy for VC Intel.
+This document outlines production architecture considerations for scaling VC Intel.
 
-## ✅ Implemented (Code-Based)
+## Database Migration
 
-### 1. Structured Logging (`lib/logger.ts`)
-- **What**: Production-grade logging with log levels (info, warn, error, debug)
-- **Why**: Essential for debugging production issues and monitoring system health
-- **Features**:
-  - Automatic PII/sensitive data redaction (API keys, tokens, passwords)
-  - Structured JSON output for log aggregation services
-  - Environment-aware (verbose in dev, compact in prod)
-  - Ready for CloudWatch/Datadog integration
-
-**Usage Example**:
-```typescript
-import { logger } from '@/lib/logger';
-
-logger.info('Enrichment started', { url, userId });
-logger.error('Database connection failed', { error: err.message });
-```
-
-### 2. Unit Testing (`lib/scoring.test.ts`)
-- **What**: Jest-based unit tests for scoring logic
-- **Why**: Validates business logic and prevents regressions
-- **Coverage**:
-  - High score calculation with strong alignment
-  - Empty signals edge case
-  - Low confidence dynamic weighting
-  - Partial alignment scenarios
-  - Confidence level thresholds
-
-**Run Tests**: `npm test` (after Jest setup)
-
-### 3. Security Hardening (`lib/security.ts`)
-- **What**: Input sanitization and validation utilities
-- **Why**: Prevents XSS, prompt injection, and storage abuse
-- **Features**:
-  - `sanitizeUserInput()`: Removes control characters, enforces length limits
-  - `sanitizePromptInput()`: Detects and filters prompt injection patterns
-  - `sanitizeHTML()`: Strips script tags, event handlers, javascript: protocol
-  - `validateStorageSize()`: Warns when approaching localStorage limits (4MB threshold)
-
-**Prompt Injection Patterns Blocked**:
-- "ignore previous instructions"
-- "disregard all prior"
-- "forget everything"
-- "new instructions:"
-- "system prompt:"
-
-### 4. Edge Case Handling
-- **Large HTML responses**: Warns if website HTML > 5MB
-- **Large AI responses**: Warns if OpenAI response > 100KB
-- **Empty content**: Rejects websites with < 100 chars extractable text
-- **localStorage limits**: Validates data size before storage (4MB warning)
-- **Retry metrics**: Tracks retry attempts for monitoring
-
-### 5. Health Check Endpoint (`app/api/health/route.ts`)
-- **What**: GET /api/health for monitoring and deployment verification
-- **Why**: Essential for load balancers, CI/CD pipelines, and uptime monitoring
-- **Returns**:
-  - Overall status (200 = healthy, 503 = degraded)
-  - Timestamp
-  - Environment (dev/staging/prod)
-  - OpenAI API key status
-  - Storage availability
-
-**Response Example**:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "environment": "production",
-  "checks": {
-    "openai": { "status": "ok", "message": "API key configured" },
-    "storage": { "status": "ok", "message": "Database connected" }
-  }
-}
-```
-
----
-
-## 📋 Conceptual Understanding (Must Know)
-
-### 6. Database Migration Strategy
-
-**Current**: localStorage (client-side, single-user, 5-10MB limit)
+**Current**: localStorage (client-side)
 **Production**: PostgreSQL with Prisma ORM
 
-#### Schema Design
+### Schema Design
 
 ```prisma
 // prisma/schema.prisma
