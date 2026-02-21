@@ -93,10 +93,6 @@ Add `OPENAI_API_KEY` in Vercel environment variables.
 
 ## Features
 
----
-
-## Limitations
-
 - AI-powered enrichment with caching
 - Explainable thesis-based scoring
 - Search and filter companies
@@ -108,6 +104,8 @@ Add `OPENAI_API_KEY` in Vercel environment variables.
 
 ---
 
+## Limitations
+
 - localStorage only (no multi-device sync)
 - Mock data (no real database)
 - No authentication
@@ -116,6 +114,7 @@ Add `OPENAI_API_KEY` in Vercel environment variables.
 ---
 
 ## What's Next
+
 - Database integration (PostgreSQL)
 - User authentication
 - Real-time enrichment queue
