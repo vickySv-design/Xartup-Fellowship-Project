@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "@/lib/logger";
 import { sanitizeUserInput } from "@/lib/security";
 
@@ -66,6 +67,35 @@ function validateEnrichment(data: any): any {
     keywords: Array.isArray(data.keywords) ? data.keywords : [],
     signals: Array.isArray(data.signals) ? data.signals : []
   };
+}
+
+async function enrichWithGemini(cleanedText: string): Promise<any> {
+  const genAI = new GoogleGenerativeAI("AIzaSyAYQRd-u09cnBswHwObbFiw5SrGBR9EBRs");
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  const prompt = `Extract from this startup website and return ONLY valid JSON:
+
+1. Summary (2 sentences)
+2. What they do (3-6 bullet points)  
+3. Keywords (5-10 relevant keywords)
+4. Signals (2-5 signals like "Careers page exists", "Blog exists", "Actively hiring")
+
+Return ONLY this JSON structure:
+{
+  "summary": "...",
+  "whatTheyDo": ["..."],
+  "keywords": ["..."],
+  "signals": ["..."]
+}
+
+Website content:
+${cleanedText.slice(0, 12000)}`;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const text = response.text();
+  
+  return extractJSON(text);
 }
 
 export async function POST(req: Request) {
@@ -156,17 +186,20 @@ export async function POST(req: Request) {
       throw new Error("Limited extractable content detected. Website may be JavaScript-heavy or empty.");
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.1, // Low temperature for consistency
-      messages: [
-        {
-          role: "system",
-          content: "You are a startup intelligence analyst. Extract structured data and return ONLY valid JSON, no markdown, no extra text. Follow the exact schema provided.",
-        },
-        {
-          role: "user",
-          content: `Extract from this startup website:
+    // Try OpenAI first, fallback to Gemini if quota exceeded
+    let parsed;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        messages: [
+          {
+            role: "system",
+            content: "You are a startup intelligence analyst. Extract structured data and return ONLY valid JSON, no markdown, no extra text. Follow the exact schema provided.",
+          },
+          {
+            role: "user",
+            content: `Extract from this startup website:
 
 1. Summary (2 sentences)
 2. What they do (3-6 bullet points)
@@ -183,41 +216,41 @@ Return ONLY this JSON structure:
 
 Website content:
 ${cleanedText.slice(0, 12000)}`,
-        },
-      ],
-    });
+          },
+        ],
+      });
 
-    const result = completion.choices[0].message.content;
-    if (!result) {
-      logger.error('Empty AI response', { url: sanitizedUrl });
-      throw new Error("Empty response from AI");
-    }
-    
-    // Edge case: Check for extremely large AI responses
-    const responseSizeInKB = new Blob([result]).size / 1024;
-    if (responseSizeInKB > 100) {
-      logger.warn('Large AI response', { url: sanitizedUrl, sizeKB: responseSizeInKB.toFixed(2) });
-    }
-
-    // Bulletproof JSON parsing
-    let parsed;
-    try {
+      const result = completion.choices[0].message.content;
+      if (!result) {
+        throw new Error("Empty response from AI");
+      }
+      
       parsed = extractJSON(result);
-    } catch (parseError) {
-      logger.error('JSON parse error', { url: sanitizedUrl, error: parseError });
-      throw new Error("Failed to parse AI response");
+      
+      const duration = Date.now() - startTime;
+      logger.info('Enrichment completed with OpenAI', { 
+        url: sanitizedUrl, 
+        durationMs: duration,
+        tokensUsed: completion.usage?.total_tokens || 0
+      });
+    } catch (openaiError: any) {
+      // If OpenAI fails with quota error, try Gemini
+      if (openaiError.message?.includes('quota') || openaiError.message?.includes('429')) {
+        logger.warn('OpenAI quota exceeded, trying Gemini', { url: sanitizedUrl });
+        parsed = await enrichWithGemini(cleanedText);
+        
+        const duration = Date.now() - startTime;
+        logger.info('Enrichment completed with Gemini', { 
+          url: sanitizedUrl, 
+          durationMs: duration
+        });
+      } else {
+        throw openaiError;
+      }
     }
 
     // Validate and sanitize
     const validated = validateEnrichment(parsed);
-    
-    const duration = Date.now() - startTime;
-    logger.info('Enrichment completed', { 
-      url: sanitizedUrl, 
-      durationMs: duration,
-      retries: retryAttempts,
-      tokensUsed: completion.usage?.total_tokens || 0
-    });
 
     return NextResponse.json({
       data: validated,
