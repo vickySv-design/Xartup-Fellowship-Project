@@ -71,7 +71,7 @@ function validateEnrichment(data: any): any {
 
 async function enrichWithGemini(cleanedText: string): Promise<any> {
   const genAI = new GoogleGenerativeAI("AIzaSyAYQRd-u09cnBswHwObbFiw5SrGBR9EBRs");
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `Extract from this startup website and return ONLY valid JSON:
 
