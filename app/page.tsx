@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import companies from "@/data/mockCompanies.json";
 import { Search, ArrowUpDown, CheckSquare, Download, FolderPlus, TrendingUp, Database, Award, Target } from "lucide-react";
@@ -20,17 +20,21 @@ export default function Home() {
     (stageFilter ? c.stage === stageFilter : true)
   );
 
-  const sorted = [...filtered].sort((a, b) => {
+  const sorted = filtered.slice().sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name);
     if (sortBy === "sector") return a.sector.localeCompare(b.sector);
     return 0;
   });
 
-  const sectors = [...new Set(companies.map(c => c.sector))];
-  const stages = [...new Set(companies.map(c => c.stage))];
+  const sectors = Array.from(new Set(companies.map(c => c.sector)));
+  const stages = Array.from(new Set(companies.map(c => c.stage)));
 
   // Calculate analytics with useMemo for performance
   const analytics = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { enrichedCount: 0, avgScore: 0, highFitCount: 0 };
+    }
+
     const enrichedCount = companies.filter(c => 
       localStorage.getItem(`enrich-${c.id}`)
     ).length;
@@ -75,14 +79,17 @@ export default function Home() {
   };
 
   const getEnrichmentStatus = (id: string) => {
+    if (typeof window === 'undefined') return "pending";
     return localStorage.getItem(`enrich-${id}`) ? "enriched" : "pending";
   };
 
   const hasNotes = (id: string) => {
+    if (typeof window === 'undefined') return false;
     return !!localStorage.getItem(`notes-${id}`);
   };
 
   const isSaved = (id: string) => {
+    if (typeof window === 'undefined') return false;
     const saved = JSON.parse(localStorage.getItem("savedCompanies") || "[]");
     return saved.some((c: any) => c.id === id);
   };

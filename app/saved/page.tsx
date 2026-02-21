@@ -45,27 +45,27 @@ export default function SavedPage() {
     localStorage.setItem("savedSearches", JSON.stringify(updated));
   };
 
-  const runSearch = (config: any) => {
+  const runSearch = (searchItem: any) => {
     // Calculate metrics before redirecting
     const allCompanies = require("@/data/mockCompanies.json");
     const matches = allCompanies.filter((c: any) => {
       return (
-        (!config.sector || c.sector === config.sector) &&
-        (!config.stage || c.stage === config.stage) &&
-        (!config.location || c.location === config.location)
+        (!searchItem.config.sector || c.sector === searchItem.config.sector) &&
+        (!searchItem.config.stage || c.stage === searchItem.config.stage) &&
+        (!searchItem.config.location || c.location === searchItem.config.location)
       );
     });
 
     // Store metrics for display
-    localStorage.setItem(`search-metrics-${search.id}`, JSON.stringify({
+    localStorage.setItem(`search-metrics-${searchItem.id}`, JSON.stringify({
       matchCount: matches.length,
       lastRun: new Date().toISOString()
     }));
 
     const params = new URLSearchParams();
-    if (config.sector) params.set("sector", config.sector);
-    if (config.stage) params.set("stage", config.stage);
-    if (config.location) params.set("location", config.location);
+    if (searchItem.config.sector) params.set("sector", searchItem.config.sector);
+    if (searchItem.config.stage) params.set("stage", searchItem.config.stage);
+    if (searchItem.config.location) params.set("location", searchItem.config.location);
     window.location.href = `/?${params.toString()}`;
   };
 
@@ -193,7 +193,7 @@ export default function SavedPage() {
               </div>
 
               <button
-                onClick={() => runSearch(search.config)}
+                onClick={() => runSearch(search)}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition flex items-center justify-center gap-2"
               >
                 <SearchIcon className="h-3.5 w-3.5" />
