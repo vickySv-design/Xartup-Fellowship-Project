@@ -3,6 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "@/lib/logger";
 import { sanitizeUserInput } from "@/lib/security";
 
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyAYQRd-u09cnBswHwObbFiw5SrGBR9EBRs");
+
 // Fallback demo data for graceful degradation
 function getDemoEnrichment(url: string): any {
   const domain = url.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
@@ -69,7 +72,6 @@ function validateEnrichment(data: any): any {
 }
 
 async function enrichWithGemini(cleanedText: string): Promise<any> {
-  const genAI = new GoogleGenerativeAI("AIzaSyAYQRd-u09cnBswHwObbFiw5SrGBR9EBRs");
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `Extract from this startup website and return ONLY valid JSON:
@@ -91,7 +93,7 @@ Website content:
 ${cleanedText.slice(0, 12000)}`;
 
   const result = await model.generateContent(prompt);
-  const response = await result.response;
+  const response = result.response;
   const text = response.text();
   
   return extractJSON(text);
