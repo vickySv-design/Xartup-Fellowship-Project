@@ -1,33 +1,33 @@
 [
   {
     "id": "1",
-    "name": "Stripe",
-    "website": "https://stripe.com",
-    "sector": "FinTech",
+    "name": "Example Corp",
+    "website": "https://example.com",
+    "sector": "Technology",
     "stage": "Series A",
     "location": "USA"
   },
   {
     "id": "2",
-    "name": "Vercel",
-    "website": "https://vercel.com",
-    "sector": "DeepTech",
+    "name": "Wikipedia",
+    "website": "https://en.wikipedia.org/wiki/Startup_company",
+    "sector": "Information",
     "stage": "Seed",
     "location": "USA"
   },
   {
     "id": "3",
-    "name": "OpenAI",
-    "website": "https://openai.com",
+    "name": "GitHub",
+    "website": "https://github.com/about",
     "sector": "DeepTech",
     "stage": "Series A",
     "location": "USA"
   },
   {
     "id": "4",
-    "name": "Notion",
-    "website": "https://notion.so",
-    "sector": "SaaS",
+    "name": "MDN Web Docs",
+    "website": "https://developer.mozilla.org",
+    "sector": "Education",
     "stage": "Seed",
     "location": "USA"
   }
