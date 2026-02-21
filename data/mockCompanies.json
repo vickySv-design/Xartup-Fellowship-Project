@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1",
+    "name": "AgriSense AI",
+    "website": "https://agrisense.ai",
+    "sector": "ClimateTech",
+    "stage": "Pre-Seed",
+    "location": "India"
+  },
+  {
+    "id": "2",
+    "name": "FinEdge Labs",
+    "website": "https://finedge.com",
+    "sector": "FinTech",
+    "stage": "Seed",
+    "location": "India"
+  },
+  {
+    "id": "3",
+    "name": "HealthSync",
+    "website": "https://healthsync.io",
+    "sector": "HealthTech",
+    "stage": "Pre-Seed",
+    "location": "India"
+  },
+  {
+    "id": "4",
+    "name": "EduFlow",
+    "website": "https://eduflow.tech",
+    "sector": "EdTech",
+    "stage": "Seed",
+    "location": "India"
+  }
+]
