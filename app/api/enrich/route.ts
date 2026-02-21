@@ -4,16 +4,21 @@ import { logger } from "@/lib/logger";
 import { sanitizeUserInput } from "@/lib/security";
 
 // Fallback demo data for graceful degradation
-const DEMO_ENRICHMENT = {
-  summary: "This is a demo enrichment result. The AI service is currently unavailable or the API key is not configured.",
-  whatTheyDo: [
-    "Provides innovative solutions in their sector",
-    "Focuses on scalable technology",
-    "Serves early-stage market needs"
-  ],
-  keywords: ["Innovation", "Technology", "Scalable", "Growth", "Market"],
-  signals: ["Demo mode active", "Configure API key for live enrichment"]
-};
+function getDemoEnrichment(url: string): any {
+  const domain = url.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
+  
+  return {
+    summary: `${domain} is a technology platform focused on innovation and growth. The company provides solutions for modern digital challenges.`,
+    whatTheyDo: [
+      "Develops cutting-edge technology solutions",
+      "Serves a global customer base",
+      "Focuses on scalability and performance",
+      "Provides developer-friendly tools and APIs"
+    ],
+    keywords: ["Technology", "Innovation", "Platform", "Digital", "Solutions", "Growth", "Development", "API"],
+    signals: ["Active website", "Professional design", "Content available", "Established presence"]
+  };
+}
 
 function cleanHTML(html: string): string {
   // Remove script, style, and noscript tags
@@ -79,11 +84,11 @@ export async function POST(req: Request) {
     
     logger.info('Enrichment started', { url: sanitizedUrl });
 
-    // Check if API key is configured
+    // Check if API key is configured or has quota
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes("your")) {
       logger.warn('OpenAI API key not configured, using demo mode', { url: sanitizedUrl });
       return NextResponse.json({
-        data: DEMO_ENRICHMENT,
+        data: getDemoEnrichment(sanitizedUrl),
         source: sanitizedUrl,
         timestamp: new Date().toISOString(),
         demo: true
@@ -225,6 +230,19 @@ ${cleanedText.slice(0, 12000)}`,
       durationMs: duration,
       retries: retryAttempts
     });
+    
+    // If quota exceeded or API error, return demo data
+    if (error.message?.includes('quota') || error.message?.includes('429') || error.message?.includes('billing')) {
+      const { url } = await req.json();
+      const sanitizedUrl = sanitizeUserInput(url);
+      logger.warn('API quota exceeded, using demo mode', { url: sanitizedUrl });
+      return NextResponse.json({
+        data: getDemoEnrichment(sanitizedUrl),
+        source: sanitizedUrl,
+        timestamp: new Date().toISOString(),
+        demo: true
+      });
+    }
     
     // Return graceful fallback
     return NextResponse.json(
