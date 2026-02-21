@@ -17,7 +17,7 @@ VC Intel automates startup research by:
 ## Try It Out
 
 1. Open the Discover page
-2. Click "Stripe" or "OpenAI"
+2. Click "Stripe" or "Notion"
 3. Click "Enrich with AI"
 4. View thesis match score and extracted intelligence
 5. Add notes, save to list, export CSV
@@ -66,7 +66,7 @@ Every score shows its breakdown - no black box.
 ## Tech Stack
 
 - Next.js 14, TypeScript, Tailwind CSS
-- OpenAI GPT-4o-mini
+- Google Gemini 1.5 Flash
 - localStorage (MVP)
 - Vercel-ready
 
@@ -77,7 +77,7 @@ Every score shows its breakdown - no black box.
 ```bash
 npm install
 cp .env.example .env.local
-# Add your OpenAI API key to .env.local
+# Add your Gemini API key to .env.local
 npm run dev
 ```
 
@@ -87,7 +87,7 @@ npm run dev
 vercel
 ```
 
-Add `OPENAI_API_KEY` in Vercel environment variables.
+Add `GEMINI_API_KEY` in Vercel environment variables.
 
 ---
 
