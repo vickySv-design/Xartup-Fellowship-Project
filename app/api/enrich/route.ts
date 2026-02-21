@@ -232,9 +232,14 @@ ${cleanedText.slice(0, 12000)}`,
       retries: retryAttempts
     });
     
-    // If quota exceeded or API error, return demo data
-    if (error.message?.includes('quota') || error.message?.includes('429') || error.message?.includes('billing')) {
-      logger.warn('API quota exceeded, using demo mode', { url: sanitizedUrl });
+    // If quota exceeded, API error, or fetch failed, return demo data
+    if (error.message?.includes('quota') || 
+        error.message?.includes('429') || 
+        error.message?.includes('billing') ||
+        error.message?.includes('fetch failed') ||
+        error.message?.includes('Access denied') ||
+        error.message?.includes('404')) {
+      logger.warn('Using demo mode due to error', { url: sanitizedUrl, error: error.message });
       return NextResponse.json({
         data: getDemoEnrichment(sanitizedUrl || 'https://example.com'),
         source: sanitizedUrl || 'https://example.com',
