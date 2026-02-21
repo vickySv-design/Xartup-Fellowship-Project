@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "@/lib/logger";
 import { sanitizeUserInput } from "@/lib/security";
@@ -115,21 +114,6 @@ export async function POST(req: Request) {
     
     logger.info('Enrichment started', { url: sanitizedUrl });
 
-    // Check if API key is configured or has quota
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes("your")) {
-      logger.warn('OpenAI API key not configured, using demo mode', { url: sanitizedUrl });
-      return NextResponse.json({
-        data: getDemoEnrichment(sanitizedUrl),
-        source: sanitizedUrl,
-        timestamp: new Date().toISOString(),
-        demo: true
-      });
-    }
-
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     // Fetch website with timeout and retry
     let response;
     let retryCount = 0;
@@ -186,68 +170,14 @@ export async function POST(req: Request) {
       throw new Error("Limited extractable content detected. Website may be JavaScript-heavy or empty.");
     }
 
-    // Try OpenAI first, fallback to Gemini if quota exceeded
-    let parsed;
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.1,
-        messages: [
-          {
-            role: "system",
-            content: "You are a startup intelligence analyst. Extract structured data and return ONLY valid JSON, no markdown, no extra text. Follow the exact schema provided.",
-          },
-          {
-            role: "user",
-            content: `Extract from this startup website:
-
-1. Summary (2 sentences)
-2. What they do (3-6 bullet points)
-3. Keywords (5-10 relevant keywords)
-4. Signals (2-5 signals like "Careers page exists", "Blog exists", "Actively hiring")
-
-Return ONLY this JSON structure:
-{
-  "summary": "...",
-  "whatTheyDo": ["..."],
-  "keywords": ["..."],
-  "signals": ["..."]
-}
-
-Website content:
-${cleanedText.slice(0, 12000)}`,
-          },
-        ],
-      });
-
-      const result = completion.choices[0].message.content;
-      if (!result) {
-        throw new Error("Empty response from AI");
-      }
-      
-      parsed = extractJSON(result);
-      
-      const duration = Date.now() - startTime;
-      logger.info('Enrichment completed with OpenAI', { 
-        url: sanitizedUrl, 
-        durationMs: duration,
-        tokensUsed: completion.usage?.total_tokens || 0
-      });
-    } catch (openaiError: any) {
-      // If OpenAI fails with quota error, try Gemini
-      if (openaiError.message?.includes('quota') || openaiError.message?.includes('429')) {
-        logger.warn('OpenAI quota exceeded, trying Gemini', { url: sanitizedUrl });
-        parsed = await enrichWithGemini(cleanedText);
-        
-        const duration = Date.now() - startTime;
-        logger.info('Enrichment completed with Gemini', { 
-          url: sanitizedUrl, 
-          durationMs: duration
-        });
-      } else {
-        throw openaiError;
-      }
-    }
+    // Use Gemini for enrichment
+    const parsed = await enrichWithGemini(cleanedText);
+    
+    const duration = Date.now() - startTime;
+    logger.info('Enrichment completed with Gemini', { 
+      url: sanitizedUrl, 
+      durationMs: duration
+    });
 
     // Validate and sanitize
     const validated = validateEnrichment(parsed);
